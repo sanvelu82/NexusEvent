@@ -5,7 +5,7 @@ export default function Header({ title, subtitle, onLogout }) {
       {/* Left Side - Logo & School Name */}
       <div className="header-left">
         <img
-          src="https://i.ibb.co/dwP2BVYp/new-logo.png"
+          src="https://i.ibb.co/qYxNQQPx/Picture2.png"
           alt="Logo"
           className="header-logo"
         />

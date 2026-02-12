@@ -51,7 +51,7 @@ export default function StaffLogin() {
       {/* Top Decorative Section with Logo */}
       <div className="login-top">
         <img 
-          src="https://i.ibb.co/dwP2BVYp/new-logo.png" 
+          src="https://i.ibb.co/qYxNQQPx/Picture2.png" 
           alt="School Logo" 
           className="school-logo"
         />
