@@ -42,37 +42,27 @@ export default function ParentLogin() {
   };
 
   return (
-    <div className="split-screen-container">
-      {/* Left Panel - Travel Poster */}
-      <div className="left-panel">
-        <h1 className="brand-title">SVV HI TECH</h1>
-        <p className="brand-slogan">
-          Nurturing young minds with excellence in education and holistic development
-        </p>
+    <div className="login-container">
+      {/* Top Decorative Section with Logo */}
+      <div className="login-top">
         <img 
-          className="travel-image" 
-          src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=800" 
-          alt="School Event"
+          src="https://i.ibb.co/dwP2BVYp/new-logo.png" 
+          alt="School Logo" 
+          className="school-logo"
         />
+        <h2 className="school-name">SVV HI TECH School</h2>
+        <p className="school-tagline">NEXUS '26 - Annual Day</p>
       </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="right-panel">
-        <div className="login-card">
-          <div className="plane-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-            </svg>
-          </div>
-          
-          <h2 className="welcome-title">Welcome</h2>
-          <p className="welcome-subtitle">Login with your credentials</p>
-          
-          <div className="portal-title">🎓 Parent Portal</div>
+      {/* Form Section */}
+      <div className="login-form-section">
+        <h1>Sign in</h1>
+        <span className="role-badge">🎓 Parent Portal</span>
 
-          <div className="input-group">
-            <label>Register Number</label>
-            <span className="input-icon">📋</span>
+        <div className="form-field">
+          <label>Register Number</label>
+          <div className="input-wrapper">
+            <span className="field-icon">📋</span>
             <input
               type="text"
               placeholder="Enter student reg no"
@@ -80,10 +70,12 @@ export default function ParentLogin() {
               onChange={(e) => setRegNo(e.target.value)}
             />
           </div>
+        </div>
 
-          <div className="input-group">
-            <label>Date of Birth</label>
-            <span className="input-icon">📅</span>
+        <div className="form-field">
+          <label>Date of Birth</label>
+          <div className="input-wrapper">
+            <span className="field-icon">📅</span>
             <input
               type="text"
               placeholder="DD-MM-YYYY"
@@ -91,11 +83,11 @@ export default function ParentLogin() {
               onChange={(e) => setDob(e.target.value)}
             />
           </div>
-
-          <button className="primary-btn" onClick={handleLogin}>
-            Login
-          </button>
         </div>
+
+        <button className="login-btn" onClick={handleLogin}>
+          Login
+        </button>
       </div>
     </div>
   );

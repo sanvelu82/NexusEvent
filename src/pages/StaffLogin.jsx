@@ -47,37 +47,27 @@ export default function StaffLogin() {
   };
 
   return (
-    <div className="split-screen-container">
-      {/* Left Panel - Travel Poster */}
-      <div className="left-panel">
-        <h1 className="brand-title">SVV HI TECH</h1>
-        <p className="brand-slogan">
-          NEXUS '26 - Annual Day Event Management Portal for authorized staff members
-        </p>
+    <div className="login-container staff-login">
+      {/* Top Decorative Section with Logo */}
+      <div className="login-top">
         <img 
-          className="travel-image" 
-          src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=800" 
-          alt="Staff Portal"
+          src="https://i.ibb.co/dwP2BVYp/new-logo.png" 
+          alt="School Logo" 
+          className="school-logo"
         />
+        <h2 className="school-name">SVV HI TECH School</h2>
+        <p className="school-tagline">NEXUS '26 - Staff Portal</p>
       </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="right-panel">
-        <div className="login-card">
-          <div className="plane-icon">
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
-            </svg>
-          </div>
-          
-          <h2 className="welcome-title">Welcome</h2>
-          <p className="welcome-subtitle">Staff Authentication</p>
-          
-          <div className="portal-title">🛡️ Staff Portal</div>
+      {/* Form Section */}
+      <div className="login-form-section">
+        <h1>Sign in</h1>
+        <span className="role-badge staff">🛡️ Staff Portal</span>
 
-          <div className="input-group">
-            <label>Username</label>
-            <span className="input-icon">👤</span>
+        <div className="form-field">
+          <label>Username</label>
+          <div className="input-wrapper">
+            <span className="field-icon">👤</span>
             <input
               type="text"
               placeholder="Enter your username"
@@ -85,10 +75,12 @@ export default function StaffLogin() {
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
+        </div>
 
-          <div className="input-group">
-            <label>Password</label>
-            <span className="input-icon">🔒</span>
+        <div className="form-field">
+          <label>Password</label>
+          <div className="input-wrapper">
+            <span className="field-icon">🔒</span>
             <input
               type="password"
               placeholder="Enter your password"
@@ -96,20 +88,20 @@ export default function StaffLogin() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
-
-          <button className="primary-btn" onClick={handleLogin}>
-            Login
-          </button>
-          
-          <p style={{ 
-            textAlign: 'center', 
-            marginTop: '20px', 
-            color: '#888', 
-            fontSize: '0.75rem' 
-          }}>
-            Authorized access only. All activities are monitored.
-          </p>
         </div>
+
+        <button className="login-btn" onClick={handleLogin}>
+          Login
+        </button>
+
+        <p style={{ 
+          textAlign: 'center', 
+          marginTop: '20px', 
+          color: '#888', 
+          fontSize: '0.75rem' 
+        }}>
+          Authorized access only. All activities are monitored.
+        </p>
       </div>
     </div>
   );
