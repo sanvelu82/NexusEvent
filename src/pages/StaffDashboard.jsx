@@ -235,7 +235,7 @@ export default function StaffDashboard() {
                   </div>
                   <div className="detail-item">
                     <label>Class</label>
-                    <span>{student.class || '-'} {student.section || ''}</span>
+                    <span>{student.studentClass || student.class || '-'} {student.studentSection || student.section || ''}</span>
                   </div>
                   <div className="detail-item">
                     <label>Reg No</label>

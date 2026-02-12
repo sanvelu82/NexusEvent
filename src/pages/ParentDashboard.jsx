@@ -10,7 +10,8 @@ export default function ParentDashboard() {
   const [pickupName, setPickupName] = useState("");
   const [relation, setRelation] = useState("");
   const [phone, setPhone] = useState("");
-  const [photoUrl, setPhotoUrl] = useState("");
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
   const [disabled, setDisabled] = useState(false);
   const [registeredData, setRegisteredData] = useState(null);
 
@@ -99,6 +100,14 @@ export default function ParentDashboard() {
   const handleImageUpload = async (file) => {
     if (!file) return;
 
+    // Create local preview URL
+    const previewUrl = URL.createObjectURL(file);
+    setPhotoPreview(previewUrl);
+    setPhotoFile(file);
+  };
+
+  // Upload to Cloudinary (called during submit)
+  const uploadToCloud = async (file) => {
     let fileToUpload = file;
 
     // Auto-compress if over 2MB
@@ -113,7 +122,7 @@ export default function ParentDashboard() {
     }
 
     Swal.fire({
-      title: "Uploading...",
+      title: "Uploading photo...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
@@ -122,28 +131,17 @@ export default function ParentDashboard() {
     formData.append("file", fileToUpload);
     formData.append("upload_preset", "nexus_event");
 
-    try {
-      const response = await fetch(
-        "https://api.cloudinary.com/v1_1/drsasl2kt/image/upload",
-        { method: "POST", body: formData }
-      );
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/drsasl2kt/image/upload",
+      { method: "POST", body: formData }
+    );
 
-      const data = await response.json();
-      setPhotoUrl(data.secure_url);
-      
-      Swal.fire({
-        icon: "success",
-        title: "Uploaded",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      Swal.fire("Failed", "Please try again.", "error");
-    }
+    const data = await response.json();
+    return data.secure_url;
   };
 
   const handleSubmit = async () => {
-    if (!pickupName || !relation || !phone || !photoUrl) {
+    if (!pickupName || !relation || !phone || !photoFile) {
       return Swal.fire("Incomplete", "Please fill all details and upload a photo.", "warning");
     }
 
@@ -151,18 +149,24 @@ export default function ParentDashboard() {
       return Swal.fire("Invalid", "Please enter a valid 10-digit phone number.", "warning");
     }
 
-    Swal.fire({
-      title: "Registering...",
-      allowOutsideClick: false,
-      didOpen: () => Swal.showLoading(),
-    });
-
     const regNo = localStorage.getItem("regNo");
 
     try {
+      // Upload photo to cloud first
+      const photoUrl = await uploadToCloud(photoFile);
+
+      Swal.fire({
+        title: "Registering...",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
       const res = await registerPickup({
         regNo,
         studentName: student.name,
+        studentClass: student.class,
+        studentSection: student.section,
+        studentPhoto: student.photo,
         pickupName,
         relation,
         phone: `+91${phone}`,
@@ -371,10 +375,10 @@ export default function ParentDashboard() {
                 />
               </div>
 
-              {photoUrl && (
+              {photoPreview && (
                 <div style={{ textAlign: 'center', padding: '15px' }}>
                   <img 
-                    src={photoUrl} 
+                    src={photoPreview} 
                     alt="Preview" 
                     style={{ 
                       width: '120px', 
@@ -384,8 +388,8 @@ export default function ParentDashboard() {
                       objectFit: 'cover' 
                     }} 
                   />
-                  <p style={{ color: '#00c853', fontSize: '0.8rem', marginTop: '8px' }}>
-                    Photo uploaded ✓
+                  <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '8px' }}>
+                    Photo selected ✓
                   </p>
                 </div>
               )}
