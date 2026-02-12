@@ -11,7 +11,7 @@ function App() {
         <Route path="/" element={<ParentLogin />} />
         <Route path="/parent" element={<ParentDashboard />} />
         <Route path="/staff-login" element={<StaffLogin />} />
-        <Route path="/staff" element={<StaffDashboard />} />
+        <Route path="/staff-dashboard" element={<StaffDashboard />} />
       </Routes>
     </BrowserRouter>
   );
