@@ -1,116 +1,288 @@
+/* src/index.css */
 :root {
-  --bg-color: #eef2fd;
+  --bg-color: #f4f7fa;
   --text-color: #333;
-  --header-bg: #4a90e2;
-  --section-bg: #fff;
-  --btn-green: #28a745;
-  --btn-red: #dc3545;
-  --btn-blue: #007bff;
-  --shadow-light: 0 2px 6px rgba(0, 0, 0, 0.1);
-  --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.15);
-  --border-radius: 8px;
+  --header-bg: #ffffff;
+  --primary-blue: #007bff;
+  --success-green: #28a745;
+  --danger-red: #dc3545;
+  --accent-blue: #4a90e2;
+  --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --border-radius: 12px;
   --transition: 0.3s ease;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background-color: var(--bg-color);
+  padding: 0;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  background-color: #e0e6ed; /* Darker background for laptop view */
   color: var(--text-color);
+  display: flex;
+  justify-content: center;
 }
 
-/* HEADER */
+/* Constrain the app to a phone-sized width on laptops */
+#root {
+  width: 100%;
+  max-width: 500px; 
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  padding: 10px;
+  flex: 1;
+}
+
+/* HEADER - Exact layout from Driver Dashboard */
 .dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--section-bg);
-  padding: 15px 20px;
+  background-color: var(--header-bg);
+  padding: 15px;
   box-shadow: var(--shadow-light);
-  border-radius: var(--border-radius);
-  margin: 20px auto;
-  max-width: 950px;
+  border-bottom: 2px solid #eee;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
 .dashboard-header img.logo {
-  height: 120px;
+  height: 80px; /* Adjusted for mobile scale */
+  width: auto;
+  object-fit: contain;
 }
 
-/* index.css */
 .dashboard-header .info {
   flex: 1;
   text-align: right;
-  padding-right: 20px;
+  padding-right: 10px;
 }
 
-.dashboard-header img.logo {
-  height: 120px; /* Aligned with your school logo size */
+.dashboard-header .info h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--accent-blue);
+  font-weight: 700;
 }
 
-/* Ensure SweetAlert modals match your theme */
-.swal2-popup {
-  border-radius: var(--border-radius) !important;
-  font-family: 'Segoe UI', sans-serif !important;
+.dashboard-header .info p {
+  margin: 2px 0;
+  font-size: 0.85rem;
+  color: #666;
 }
 
+/* MAIN SECTIONS */
 .section {
-  background-color: var(--section-bg);
+  background-color: #ffffff;
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-light);
   padding: 20px;
-  margin: 20px auto;
-  max-width: 950px;
-  transition: box-shadow var(--transition);
-}
-
-.section:hover {
-  box-shadow: var(--shadow-medium);
-}
-
-input {
-  padding: 10px;
-  width: 100%;
-  margin-bottom: 10px;
-  border-radius: var(--border-radius);
-  border: 1px solid #ccc;
-}
-
-button {
-  padding: 8px 14px;
-  border: none;
-  border-radius: var(--border-radius);
-  cursor: pointer;
+  margin: 15px 5px;
   transition: transform var(--transition), box-shadow var(--transition);
 }
 
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-light);
+.section h3 {
+  margin-top: 0;
+  color: var(--accent-blue);
+  font-size: 1.1rem;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
 }
 
-.primary-btn {
-  background: var(--btn-blue);
+/* MULTIPLE STUDENT CARDS */
+.student-card {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: #fcfcfc;
+  border: 1px solid #edf2f7;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  border-left: 5px solid var(--primary-blue);
+}
+
+.student-card img {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent-blue);
+}
+
+.student-card-info {
+  flex: 1;
+}
+
+.student-card-info h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+.student-card-info p {
+  margin: 2px 0;
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* QR SCANNER CONTAINER */
+#reader {
+  width: 100% !important;
+  border: none !important;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+#reader__dashboard_section_csr button {
+  background-color: var(--primary-blue) !important;
+  color: white !important;
+  border-radius: 5px !important;
+  padding: 8px !important;
+  text-transform: uppercase;
+  font-size: 0.7rem !important;
+}
+
+/* FORMS & UI */
+input, select {
+  padding: 12px;
+  width: 100%;
+  margin-bottom: 12px;
+  border-radius: var(--border-radius);
+  border: 1.5px solid #e2e8f0;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+}
+
+button {
+  padding: 12px 16px;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.primary-btn { background: var(--primary-blue); color: white; width: 100%; }
+.success-btn { background: var(--success-green); color: white; width: 100%; }
+.danger-btn { background: var(--danger-red); color: white; }
+
+/* LOADING ANIMATION (Purple Style from previous repo) */
+.loader-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  display: flex;
+  align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+}
+
+.loader {
+  width: 48px;
+  height: 48px;
+  border: 5px solid #b84dff;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: rotation 1s linear infinite;
+}
+
+@keyframes rotation {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* UTILITIES */
+.text-center { text-align: center; }
+
+/* SweetAlert2 Theme Overrides */
+.swal2-popup {
+  border-radius: 20px !important;
+  width: 90% !important;
+  max-width: 400px !important;
+}
+
+/* Constrain layout for laptop but look perfect on mobile */
+.mobile-container {
+  max-width: 500px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #f4f7fa;
+}
+
+/* Student card styling for multiple results */
+.student-card {
+  border-left: 6px solid #4a90e2;
+  margin-bottom: 20px !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.pickup-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #4a90e2;
+}
+
+.badge {
+  padding: 4px 10px;
   color: white;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: bold;
 }
 
-.success-btn {
-  background: var(--btn-green);
-  color: white;
+.card-body p {
+  margin: 4px 0;
+  font-size: 0.9rem;
 }
 
-.danger-btn {
-  background: var(--btn-red);
-  color: white;
+.card-footer {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
 }
 
-.tick-success {
-  font-size: 70px;
-  color: var(--btn-green);
-  text-align: center;
-  animation: pop 0.4s ease;
-}
-
-@keyframes pop {
-  0% { transform: scale(0); }
-  100% { transform: scale(1); }
+/* Loader style */
+.swal2-loading {
+  border-radius: 50%;
 }

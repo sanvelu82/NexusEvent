@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import { registerPickup } from "../services/api";
 import Header from "../components/Header";
 
@@ -10,9 +11,8 @@ export default function ParentDashboard() {
   const [relation, setRelation] = useState("");
   const [phone, setPhone] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
-  const [message, setMessage] = useState("");
   const [disabled, setDisabled] = useState(false);
-  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     const data = localStorage.getItem("studentData");
 
@@ -25,137 +25,224 @@ export default function ParentDashboard() {
     setStudent(parsed);
 
     if (parsed.registered === "YES") {
-      setMessage("Pickup already registered for this student.");
       setDisabled(true);
+      Swal.fire({
+        icon: "info",
+        title: "Already Registered",
+        text: "Pickup is already registered for this student.",
+        confirmButtonColor: "#007bff",
+      });
     }
-  }, []);
+  }, [navigate]);
 
   const handleImageUpload = async (file) => {
-  if (!file) return;
+    if (!file) return;
 
-  // Max size 2MB
-  if (file.size > 2 * 1024 * 1024) {
-    alert("Image must be less than 2MB");
-    return;
-  }
+    // Max size 2MB check
+    if (file.size > 2 * 1024 * 1024) {
+      Swal.fire("Error", "Image must be less than 2MB", "error");
+      return;
+    }
 
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("upload_preset", "nexus_event"); // your preset
-
-  try {
-    setUploading(true);
-
-    const response = await fetch(
-      "https://api.cloudinary.com/v1_1/drsasl2kt/image/upload",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    const data = await response.json();
-    setPhotoUrl(data.secure_url);
-
-  } catch (error) {
-    console.error("Upload failed:", error);
-  } finally {
-    setUploading(false);
-  }
-};
-
-
-  const handleSubmit = async () => {
-    const regNo = localStorage.getItem("regNo");
-
-    const res = await registerPickup({
-      regNo,
-      studentName: student.name,
-      pickupName,
-      relation,
-      phone,
-      pickupPhoto: photoUrl,
+    // Show Loading Animation for Upload
+    Swal.fire({
+      title: "Uploading Photo...",
+      text: "Please wait while we process the image.",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
     });
 
-    if (res.status === "success") {
-      setMessage("Pickup Registered Successfully ✅");
-      setDisabled(true);
-    } else if (res.status === "already_registered") {
-      setMessage("Pickup already registered.");
-      setDisabled(true);
-    } else {
-      setMessage("Something went wrong.");
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "nexus_event");
+
+    try {
+      const response = await fetch(
+        "https://api.cloudinary.com/v1_1/drsasl2kt/image/upload",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+      setPhotoUrl(data.secure_url);
+      
+      Swal.fire({
+        icon: "success",
+        title: "Photo Uploaded",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      console.error("Upload failed:", error);
+      Swal.fire("Upload Failed", "Failed to upload image. Please try again.", "error");
     }
+  };
+
+  const handleSubmit = async () => {
+    if (!pickupName || !relation || !phone || !photoUrl) {
+      return Swal.fire("Incomplete Info", "Please fill all details and upload a photo.", "warning");
+    }
+
+    const regNo = localStorage.getItem("regNo");
+
+    // Show Loading for Registration
+    Swal.fire({
+      title: "Registering Pickup...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    try {
+      const res = await registerPickup({
+        regNo,
+        studentName: student.name,
+        pickupName,
+        relation,
+        phone,
+        pickupPhoto: photoUrl,
+      });
+
+      if (res.status === "success") {
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Pickup Registered Successfully ✅",
+          confirmButtonColor: "#28a745",
+        });
+        setDisabled(true);
+      } else if (res.status === "already_registered") {
+        Swal.fire("Warning", "Pickup is already registered.", "warning");
+        setDisabled(true);
+      } else {
+        Swal.fire("Error", "Something went wrong. Please try again.", "error");
+      }
+    } catch (err) {
+      Swal.fire("Error", "Connection failed.", "error");
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("studentData");
+    localStorage.removeItem("regNo");
+    localStorage.removeItem("parentLogged");
+    navigate("/");
   };
 
   if (!student) return null;
 
   return (
-  <>
-    <Header title="Annual Day Pickup Registration" />
+    <div className="mobile-container">
+      <Header 
+        title="Pickup Registration" 
+        subtitle="Annual Day NEXUS '26" 
+        onLogout={handleLogout} 
+      />
 
-    <div className="section">
-      <h3>Student Details</h3>
-
-      <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-        <img
-          src={student.photo}
-          width="120"
-          style={{ borderRadius: "8px" }}
-        />
-
-        <div>
-          <p><strong>Name:</strong> {student.name}</p>
-          <p><strong>Class:</strong> {student.class}</p>
-          <p><strong>Section:</strong> {student.section}</p>
-          <p><strong>Pickup Date:</strong> 28-02-2026</p>
+      <main>
+        {/* Student Information Section */}
+        <div className="section">
+          <h3>🧑‍🎓 Student Details</h3>
+          <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+            <img
+              src={student.photo}
+              alt="Student"
+              style={{ 
+                width: "100px", 
+                height: "100px", 
+                borderRadius: "12px", 
+                objectFit: "cover", 
+                border: "3px solid #4a90e2" 
+              }}
+            />
+            <div style={{ fontSize: "0.9rem", lineHeight: "1.4" }}>
+              <p><strong>Name:</strong> {student.name}</p>
+              <p><strong>Class:</strong> {student.class} - {student.section}</p>
+              <p><strong>Pickup Date:</strong> 28-02-2026</p>
+            </div>
+          </div>
         </div>
-      </div>
+
+        {/* Pickup Form Section */}
+        <div className="section">
+          <h3>👤 Pickup Person Details</h3>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <label style={{ fontSize: "0.85rem", color: "#666", fontWeight: "bold" }}>Name of Pickup Person</label>
+            <input
+              placeholder="Enter full name"
+              value={pickupName}
+              disabled={disabled}
+              onChange={(e) => setPickupName(e.target.value)}
+            />
+
+            <label style={{ fontSize: "0.85rem", color: "#666", fontWeight: "bold" }}>Relationship</label>
+            <input
+              placeholder="Father / Mother / Brother etc."
+              value={relation}
+              disabled={disabled}
+              onChange={(e) => setRelation(e.target.value)}
+            />
+
+            <label style={{ fontSize: "0.85rem", color: "#666", fontWeight: "bold" }}>Mobile Number</label>
+            <input
+              type="tel"
+              placeholder="Enter 10 digit number"
+              value={phone}
+              disabled={disabled}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+
+            <label style={{ fontSize: "0.85rem", color: "#666", fontWeight: "bold" }}>Pickup Person Photo</label>
+            {/* Removed capture="environment" to allow Gallery/File Manager upload */}
+            <input
+              type="file"
+              accept="image/*"
+              disabled={disabled}
+              onChange={(e) => handleImageUpload(e.target.files[0])}
+              style={{ padding: "8px" }}
+            />
+
+            {photoUrl && (
+              <div style={{ textAlign: "center", margin: "10px 0" }}>
+                <img
+                  src={photoUrl}
+                  alt="Pickup Preview"
+                  style={{ 
+                    width: "120px", 
+                    height: "120px", 
+                    borderRadius: "50%", 
+                    border: "4px solid #28a745", 
+                    objectFit: "cover" 
+                  }}
+                />
+                <p style={{ color: "#28a745", fontSize: "0.8rem", fontWeight: "bold" }}>Photo Ready ✅</p>
+              </div>
+            )}
+
+            {!disabled && (
+              <button 
+                className="success-btn" 
+                onClick={handleSubmit}
+                style={{ marginTop: "10px", padding: "15px" }}
+              >
+                Register Pickup
+              </button>
+            )}
+            
+            {disabled && (
+              <div style={{ textAlign: "center", padding: "10px", background: "#f8f9fa", borderRadius: "8px" }}>
+                <p style={{ color: "#28a745", fontWeight: "bold" }}>✅ Registration Complete</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
-
-    <div className="section">
-      <h3>Pickup Person Details</h3>
-
-      <input
-        placeholder="Pickup Person Name"
-        value={pickupName}
-        onChange={(e) => setPickupName(e.target.value)}
-      />
-
-      <input
-        placeholder="Relation"
-        value={relation}
-        onChange={(e) => setRelation(e.target.value)}
-      />
-
-      <input
-        placeholder="Phone"
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-      />
-
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={(e) => handleImageUpload(e.target.files[0])}
-      />
-
-      {photoUrl && (
-        <img
-          src={photoUrl}
-          width="120"
-          style={{ borderRadius: "8px", marginBottom: "10px" }}
-        />
-      )}
-
-      <button className="success-btn" onClick={handleSubmit}>
-        Register Pickup
-      </button>
-
-      {message && <p style={{ color: "green" }}>{message}</p>}
-    </div>
-  </>
-);
-
+  );
 }
