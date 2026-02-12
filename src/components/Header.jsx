@@ -1,21 +1,20 @@
 export default function Header({ title, subtitle, onLogout }) {
   return (
-    <div className="dashboard-header">
-      <img
-        className="logo"
-        src="https://i.ibb.co/dwP2BVYp/new-logo.png"
-        alt="School Logo"
-      />
-      <div className="info">
-        <h2>SVV HI TECH School</h2>
-        <p><strong>{title}</strong></p>
-        {subtitle && <p style={{ fontSize: '0.8rem', color: '#666' }}>{subtitle}</p>}
+    <header className="dashboard-header">
+      <div className="header-brand">
+        <h1 className="school-name">SVV HI TECH School</h1>
+        <img
+          className="logo"
+          src="https://i.ibb.co/dwP2BVYp/new-logo.png"
+          alt="School Logo"
+        />
       </div>
+      
       {onLogout && (
-        <button className="danger-btn" onClick={onLogout}>
-          🚪 Logout
+        <button className="logout-btn" onClick={onLogout}>
+          Logout
         </button>
       )}
-    </div>
+    </header>
   );
 }

@@ -26,7 +26,6 @@ export default function ParentDashboard() {
     const parsed = JSON.parse(data);
     setStudent(parsed);
 
-    // If student is already marked as registered, fetch their pickup details immediately
     if (parsed.registered === "YES") {
       setDisabled(true);
       fetchExistingRegistration(regNo);
@@ -35,14 +34,13 @@ export default function ParentDashboard() {
 
   const fetchExistingRegistration = async (regNo) => {
     Swal.fire({
-      title: "Loading Registration...",
+      title: "Loading...",
       didOpen: () => Swal.showLoading(),
     });
 
     try {
       const res = await searchPickup(regNo);
       if (res.status === "found") {
-        // Take the first matching record for this specific student
         setRegisteredData(res.data[0]);
         Swal.close();
       } else {
@@ -62,8 +60,7 @@ export default function ParentDashboard() {
     }
 
     Swal.fire({
-      title: "Uploading Photo...",
-      text: "Connecting to secure storage.",
+      title: "Uploading...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
@@ -83,22 +80,22 @@ export default function ParentDashboard() {
       
       Swal.fire({
         icon: "success",
-        title: "Photo Uploaded",
-        timer: 1500,
+        title: "Uploaded",
+        timer: 1000,
         showConfirmButton: false,
       });
     } catch (error) {
-      Swal.fire("Upload Failed", "Please try again.", "error");
+      Swal.fire("Failed", "Please try again.", "error");
     }
   };
 
   const handleSubmit = async () => {
     if (!pickupName || !relation || !phone || !photoUrl) {
-      return Swal.fire("Incomplete Info", "Please fill all details and upload a photo.", "warning");
+      return Swal.fire("Incomplete", "Please fill all details and upload a photo.", "warning");
     }
 
     Swal.fire({
-      title: "Registering Pickup...",
+      title: "Registering...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
@@ -116,18 +113,19 @@ export default function ParentDashboard() {
       });
 
       if (res.status === "success") {
+        // Show refined success animation
         Swal.fire({
           icon: "success",
-          title: "Registration Success",
-          text: "Pickup Details Registered Successfully ✅",
+          title: "Success!",
+          text: "Pickup registered successfully",
+          timer: 2000,
+          showConfirmButton: false,
+          timerProgressBar: true,
+        }).then(() => {
+          // Auto-redirect to home page after success
+          localStorage.clear();
+          navigate("/");
         });
-        
-        // Refresh to show the details view
-        const updatedStudent = { ...student, registered: "YES" };
-        localStorage.setItem("studentData", JSON.stringify(updatedStudent));
-        setStudent(updatedStudent);
-        setDisabled(true);
-        fetchExistingRegistration(regNo);
 
       } else {
         Swal.fire("Error", "Failed to register. Please try again.", "error");
@@ -145,87 +143,167 @@ export default function ParentDashboard() {
   if (!student) return null;
 
   return (
-    <div className="mobile-container">
+    <div className="dashboard-container">
       <Header 
         title="Pickup Portal" 
         subtitle="Annual Day NEXUS '26" 
         onLogout={handleLogout} 
       />
 
-      <main>
-        {/* Section 1: Student Identity */}
-        <div className="section">
-          <h3 style={{ color: '#4a90e2' }}>🧑‍🎓 Student Info</h3>
-          <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-            <img
-              src={student.photo}
-              alt="Student"
-              style={{ width: "90px", height: "90px", borderRadius: "12px", border: "3px solid #4a90e2", objectFit: "cover" }}
-            />
-            <div style={{ fontSize: "0.9rem" }}>
-              <p><strong>Name:</strong> {student.name}</p>
-              <p><strong>Class:</strong> {student.class} - {student.section}</p>
-              <p><strong>Reg No:</strong> {localStorage.getItem("regNo")}</p>
+      <main className="dashboard-main">
+        {/* Student Info Card */}
+        <div className="result-card">
+          <h3 style={{ color: '#00bcd4', marginBottom: '15px', fontSize: '1rem' }}>
+            🧑‍🎓 Student Information
+          </h3>
+          <div className="images-row">
+            <div className="image-box">
+              <img src={student.photo} alt="Student" />
+              <p>Student Photo</p>
+            </div>
+          </div>
+          <div className="details-grid">
+            <div className="detail-item">
+              <label>Name</label>
+              <span>{student.name}</span>
+            </div>
+            <div className="detail-item">
+              <label>Class</label>
+              <span>{student.class} - {student.section}</span>
+            </div>
+            <div className="detail-item">
+              <label>Reg No</label>
+              <span>{localStorage.getItem("regNo")}</span>
+            </div>
+            <div className="detail-item">
+              <label>Status</label>
+              <span className={`status-badge ${disabled ? 'status-approved' : 'status-registered'}`}>
+                {disabled ? 'Registered' : 'Pending'}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Conditional Rendering - Details or Form */}
+        {/* Conditional: Show Details or Form */}
         {disabled && registeredData ? (
           /* DISPLAY MODE: Show existing pickup details */
-          <div className="section" style={{ borderLeft: "6px solid #28a745" }}>
-            <h3 style={{ color: "#28a745" }}>✅ Pickup Confirmed</h3>
-            <div style={{ textAlign: "center", marginBottom: "15px" }}>
-              <img
-                src={registeredData.pickupPhoto}
-                alt="Pickup Person"
-                style={{ width: "150px", height: "150px", borderRadius: "50%", border: "4px solid #28a745", objectFit: "cover", padding: "3px" }}
-              />
+          <div className="result-card" style={{ borderLeft: '4px solid #00c853' }}>
+            <h3 style={{ color: '#00c853', marginBottom: '15px', fontSize: '1rem' }}>
+              ✅ Pickup Person Details
+            </h3>
+            <div className="images-row">
+              <div className="image-box">
+                <img 
+                  src={registeredData.pickupPhoto} 
+                  alt="Pickup Person"
+                  style={{ borderColor: '#00c853' }}
+                />
+                <p>Pickup Person</p>
+              </div>
             </div>
-            <div className="info-list">
-              <p><strong>Pickup Person:</strong> {registeredData.pickupName}</p>
-              <p><strong>Relationship:</strong> {registeredData.relation}</p>
-              <p><strong>Phone:</strong> {registeredData.phone}</p>
-              <p><strong>Status:</strong> <span style={{ color: "#007bff", fontWeight: "bold" }}>{registeredData.statusPickup}</span></p>
-              <p><strong>Approved By:</strong> {registeredData.approvedBy || "Waiting for Faculty"}</p>
+            <div className="details-grid">
+              <div className="detail-item">
+                <label>Name</label>
+                <span>{registeredData.pickupName}</span>
+              </div>
+              <div className="detail-item">
+                <label>Relation</label>
+                <span>{registeredData.relation}</span>
+              </div>
+              <div className="detail-item">
+                <label>Phone</label>
+                <span>{registeredData.phone}</span>
+              </div>
+              <div className="detail-item">
+                <label>Status</label>
+                <span className={`status-badge ${
+                  registeredData.statusPickup === 'APPROVED' ? 'status-approved' : 
+                  registeredData.statusPickup === 'PICKED' ? 'status-picked' : 'status-registered'
+                }`}>
+                  {registeredData.statusPickup}
+                </span>
+              </div>
+              <div className="detail-item" style={{ gridColumn: '1 / -1' }}>
+                <label>Approved By</label>
+                <span>{registeredData.approvedBy || "Waiting for Faculty"}</span>
+              </div>
             </div>
-            <div style={{ marginTop: "15px", padding: "10px", background: "#f8f9fa", borderRadius: "8px", fontSize: "0.8rem", textAlign: "center" }}>
-              Please show this screen to the gate staff during pickup on 28-02-2026.
+            <div style={{ 
+              marginTop: '15px', 
+              padding: '12px', 
+              background: '#e8f5e9', 
+              borderRadius: '8px', 
+              fontSize: '0.8rem', 
+              textAlign: 'center',
+              color: '#2e7d32'
+            }}>
+              Show this screen to gate staff during pickup on 28-02-2026
             </div>
           </div>
         ) : (
-          /* INPUT MODE: Show registration form */
+          /* INPUT MODE: Registration Form */
           <div className="section">
-            <h3>👤 Register Pickup Person</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <h3 style={{ color: '#00bcd4' }}>👤 Register Pickup Person</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label className="input-label">Pickup Person Name</label>
-                <input placeholder="Enter full name" value={pickupName} onChange={(e) => setPickupName(e.target.value)} />
+                <input 
+                  placeholder="Enter full name" 
+                  value={pickupName} 
+                  onChange={(e) => setPickupName(e.target.value)} 
+                />
               </div>
 
               <div>
                 <label className="input-label">Relation to Student</label>
-                <input placeholder="e.g. Father, Mother, Uncle" value={relation} onChange={(e) => setRelation(e.target.value)} />
+                <input 
+                  placeholder="e.g. Father, Mother, Uncle" 
+                  value={relation} 
+                  onChange={(e) => setRelation(e.target.value)} 
+                />
               </div>
 
               <div>
                 <label className="input-label">Contact Number</label>
-                <input type="tel" placeholder="10-digit mobile number" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <input 
+                  type="tel" 
+                  placeholder="10-digit mobile number" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                />
               </div>
 
               <div>
                 <label className="input-label">Upload Profile Photo</label>
-                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} style={{ padding: "8px" }} />
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => handleImageUpload(e.target.files[0])} 
+                  style={{ padding: '10px', background: '#f8f9fa' }} 
+                />
               </div>
 
               {photoUrl && (
-                <div style={{ textAlign: "center" }}>
-                  <img src={photoUrl} alt="Preview" style={{ width: "100px", height: "100px", borderRadius: "50%", border: "3px solid #28a745", objectFit: "cover" }} />
-                  <p style={{ color: "#28a745", fontSize: "0.8rem" }}>Photo verified ✅</p>
+                <div style={{ textAlign: 'center', padding: '15px' }}>
+                  <img 
+                    src={photoUrl} 
+                    alt="Preview" 
+                    style={{ 
+                      width: '100px', 
+                      height: '100px', 
+                      borderRadius: '50%', 
+                      border: '3px solid #00c853', 
+                      objectFit: 'cover' 
+                    }} 
+                  />
+                  <p style={{ color: '#00c853', fontSize: '0.8rem', marginTop: '8px' }}>
+                    Photo uploaded ✓
+                  </p>
                 </div>
               )}
 
-              <button className="success-btn" onClick={handleSubmit} style={{ marginTop: "10px", padding: "15px" }}>
+              <button className="success-btn" onClick={handleSubmit} style={{ width: '100%', padding: '14px' }}>
                 Confirm Registration
               </button>
             </div>

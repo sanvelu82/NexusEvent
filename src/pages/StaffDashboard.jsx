@@ -1,42 +1,64 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { searchPickup, approvePickup, markPicked } from "../services/api";
 import Header from "../components/Header";
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState("");
-  const [results, setResults] = useState([]); // Stores multiple students
+  const [results, setResults] = useState([]);
   const [facultyName, setFacultyName] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [scanner, setScanner] = useState(null);
+  const scannerRef = useRef(null);
 
   useEffect(() => {
-    // Synchronized check for /staff-login
     if (localStorage.getItem("staffLogged") !== "true") {
       navigate("/staff-login");
     } else {
       setFacultyName(localStorage.getItem("facultyName") || "Staff Member");
     }
+
+    return () => {
+      // Cleanup scanner on unmount
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+      }
+    };
   }, [navigate]);
 
-  const toggleScanner = () => {
-    if (!isScanning) {
-      setIsScanning(true);
-      setTimeout(() => {
-        const newScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
-        newScanner.render((text) => {
-          setSearchInput(text);
-          handleSearch(text);
-          newScanner.clear();
+  const startScanner = async () => {
+    if (isScanning) {
+      // Stop scanner
+      if (scannerRef.current) {
+        await scannerRef.current.stop();
+        scannerRef.current = null;
+      }
+      setIsScanning(false);
+      return;
+    }
+
+    setIsScanning(true);
+    
+    try {
+      const html5QrCode = new Html5Qrcode("reader");
+      scannerRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          setSearchInput(decodedText);
+          handleSearch(decodedText);
+          html5QrCode.stop();
+          scannerRef.current = null;
           setIsScanning(false);
-        });
-        setScanner(newScanner);
-      }, 300);
-    } else {
-      if (scanner) scanner.clear();
+        },
+        () => {} // Ignore errors during scanning
+      );
+    } catch (err) {
+      Swal.fire("Camera Error", "Could not access camera. Please allow camera permissions.", "error");
       setIsScanning(false);
     }
   };
@@ -52,11 +74,11 @@ export default function StaffDashboard() {
     try {
       const res = await searchPickup(query);
       if (res.status === "found") {
-        setResults(res.data); // Apps Script returns an array in 'data'
+        setResults(res.data);
         Swal.close();
       } else {
         setResults([]);
-        Swal.fire("Not Found", "❌ No registration found.", "error");
+        Swal.fire("Not Found", "No registration found.", "error");
       }
     } catch (error) {
       Swal.fire("Error", "Could not connect to the server.", "error");
@@ -67,8 +89,13 @@ export default function StaffDashboard() {
     Swal.showLoading();
     const res = await approvePickup(regNo, facultyName);
     if (res.status === "approved") {
-      Swal.fire("Success", "Pickup Approved ✅", "success");
-      handleSearch(); 
+      Swal.fire({
+        icon: "success",
+        title: "Approved",
+        timer: 1500,
+        showConfirmButton: false
+      });
+      handleSearch();
     }
   };
 
@@ -76,7 +103,12 @@ export default function StaffDashboard() {
     Swal.showLoading();
     const res = await markPicked(regNo);
     if (res.status === "picked") {
-      Swal.fire("Success", "Student Picked Up Successfully!", "success");
+      Swal.fire({
+        icon: "success",
+        title: "Picked Up",
+        timer: 1500,
+        showConfirmButton: false
+      });
       handleSearch();
     }
   };
@@ -86,59 +118,139 @@ export default function StaffDashboard() {
     navigate("/staff-login");
   };
 
-  return (
-    <div className="mobile-container">
-      <Header title="Staff Dashboard" subtitle={`Staff: ${facultyName}`} onLogout={handleLogout} />
+  // QR Icon SVG (GPay-style)
+  const QRIcon = () => (
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 0h1v2h-2v-1h1v-1zm-2-2h2v1h-1v1h-1v-2zm2 4h2v2h-1v-1h-1v-1zm-2 2h1v2h-2v-2h1zm2 0h2v1h-2v-1zm1-4h1v1h-1v-1zm-11-8h2v2H8V5zm4 0h2v2h-2V5zm-4 4h2v2H8V9zm4 0h2v2h-2V9z"/>
+    </svg>
+  );
 
-      <main>
+  return (
+    <div className="dashboard-container">
+      <Header 
+        title="Staff Dashboard" 
+        subtitle={`Staff: ${facultyName}`} 
+        onLogout={handleLogout} 
+      />
+
+      <main className="dashboard-main">
+        {/* Search Section */}
         <div className="section">
-          <h3 style={{ color: "#4a90e2" }}>🔍 Pickup Search</h3>
-          <div style={{ display: "flex", gap: "8px", marginBottom: "12px" }}>
-            <input
-              placeholder="Reg No / Phone"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              style={{ marginBottom: 0 }}
-            />
-            <button className="primary-btn" onClick={() => handleSearch()}>Search</button>
+          <h3>🔍 Pickup Search</h3>
+          
+          <div className="search-bar-container">
+            <div className="search-input-wrapper">
+              <input
+                placeholder="Reg No / Phone"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              />
+              <button className="qr-icon-btn" onClick={startScanner} title="Scan QR Code">
+                <QRIcon />
+              </button>
+            </div>
+            <button className="primary-btn" onClick={() => handleSearch()} style={{ width: 'auto', padding: '14px 20px' }}>
+              Search
+            </button>
           </div>
 
-          <button 
-            className="secondary-btn" 
-            onClick={toggleScanner}
-            style={{ width: "100%", background: isScanning ? "#dc3545" : "#6c757d", color: "white" }}
-          >
-            {isScanning ? "Close Scanner" : "📷 Scan QR Code"}
-          </button>
-          {isScanning && <div id="reader" style={{ marginTop: "15px" }}></div>}
+          {isScanning && (
+            <div style={{ marginTop: '15px' }}>
+              <div id="reader" style={{ width: '100%', borderRadius: '12px', overflow: 'hidden' }}></div>
+              <button 
+                className="secondary-btn" 
+                onClick={startScanner}
+                style={{ width: '100%', marginTop: '10px', background: '#e74c3c', color: 'white', border: 'none' }}
+              >
+                Close Scanner
+              </button>
+            </div>
+          )}
         </div>
 
+        {/* Results */}
         {results.length > 0 && (
-          <div className="results-container">
-            <h3 className="text-center" style={{ color: "#4a90e2", margin: "15px 0" }}>
+          <div>
+            <p style={{ textAlign: 'center', color: '#00bcd4', fontWeight: '600', margin: '15px 0' }}>
               {results.length} Student(s) Found
-            </h3>
+            </p>
             
             {results.map((student, index) => (
-              <div key={index} className="student-card section">
-                <div className="card-header">
-                   <img src={student.pickupPhoto} className="pickup-avatar" alt="Pickup" />
-                   <div className="badge" style={{ background: student.statusPickup === "APPROVED" ? "#28a745" : "#007bff" }}>
-                     {student.statusPickup}
-                   </div>
+              <div key={index} className="result-card">
+                {/* Images Row - Student & Pickup */}
+                <div className="images-row">
+                  <div className="image-box">
+                    <img src={student.studentPhoto || student.photo || 'https://via.placeholder.com/90'} alt="Student" />
+                    <p>Student</p>
+                  </div>
+                  <div className="image-box">
+                    <img 
+                      src={student.pickupPhoto} 
+                      alt="Pickup Person"
+                      style={{ borderColor: student.statusPickup === 'APPROVED' ? '#00c853' : '#00bcd4' }}
+                    />
+                    <p>Pickup Person</p>
+                  </div>
                 </div>
-                <div className="card-body">
-                  <p><strong>Student:</strong> {student.studentName}</p>
-                  <p><strong>Pickup:</strong> {student.pickupName}</p>
-                  <p><strong>Relation:</strong> {student.relation}</p>
-                  <p><strong>Approved By:</strong> {student.approvedBy || "—"}</p>
+
+                {/* Details Grid */}
+                <div className="details-grid">
+                  <div className="detail-item">
+                    <label>Student Name</label>
+                    <span>{student.studentName}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Class</label>
+                    <span>{student.class || '-'} {student.section || ''}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Reg No</label>
+                    <span>{student.regNo}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Pickup Name</label>
+                    <span>{student.pickupName}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Relation</label>
+                    <span>{student.relation}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Phone</label>
+                    <span>{student.phone}</span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Status</label>
+                    <span className={`status-badge ${
+                      student.statusPickup === 'APPROVED' ? 'status-approved' : 
+                      student.statusPickup === 'PICKED' ? 'status-picked' : 'status-registered'
+                    }`}>
+                      {student.statusPickup}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <label>Approved By</label>
+                    <span>{student.approvedBy || '—'}</span>
+                  </div>
                 </div>
-                <div className="card-footer">
+
+                {/* Action Buttons */}
+                <div className="actions">
                   {student.statusPickup === "REGISTERED" && (
-                    <button className="success-btn" onClick={() => handleApprove(student.regNo)}>✅ Approve</button>
+                    <button className="success-btn" onClick={() => handleApprove(student.regNo)}>
+                      ✓ Approve
+                    </button>
                   )}
                   {student.statusPickup === "APPROVED" && (
-                    <button className="primary-btn" onClick={() => handleMarkPicked(student.regNo)}>📦 Mark Picked</button>
+                    <button className="primary-btn" onClick={() => handleMarkPicked(student.regNo)}>
+                      📦 Mark Picked
+                    </button>
+                  )}
+                  {student.statusPickup === "PICKED" && (
+                    <button className="secondary-btn" disabled style={{ opacity: 0.6 }}>
+                      Completed
+                    </button>
                   )}
                 </div>
               </div>
