@@ -39,6 +39,21 @@ export default function StaffDashboard() {
       return;
     }
 
+    // First, request camera permission explicitly
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      // Stop the stream immediately, we just needed permission
+      stream.getTracks().forEach(track => track.stop());
+    } catch (permissionError) {
+      Swal.fire({
+        icon: "warning",
+        title: "Camera Permission Required",
+        text: "Please allow camera access to scan QR codes.",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+
     setIsScanning(true);
     
     try {
@@ -58,7 +73,7 @@ export default function StaffDashboard() {
         () => {} // Ignore errors during scanning
       );
     } catch (err) {
-      Swal.fire("Camera Error", "Could not access camera. Please allow camera permissions.", "error");
+      Swal.fire("Camera Error", "Could not start camera. Please try again.", "error");
       setIsScanning(false);
     }
   };
