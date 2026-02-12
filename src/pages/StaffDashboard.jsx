@@ -251,7 +251,7 @@ export default function StaffDashboard() {
                   </div>
                   <div className="detail-item">
                     <label>Phone</label>
-                    <span>{student.phone}</span>
+                    <span>🇮🇳 +91 {student.phone?.replace(/^\+91/, '')}</span>
                   </div>
                   <div className="detail-item">
                     <label>Status</label>

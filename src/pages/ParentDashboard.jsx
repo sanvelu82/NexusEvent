@@ -169,7 +169,7 @@ export default function ParentDashboard() {
         studentPhoto: student.photo,
         pickupName,
         relation,
-        phone: `+91${phone}`,
+        phone,
         pickupPhoto: photoUrl,
       });
 
@@ -273,7 +273,7 @@ export default function ParentDashboard() {
               </div>
               <div className="detail-item">
                 <label>Phone</label>
-                <span>{registeredData.phone}</span>
+                <span>🇮🇳 +91 {registeredData.phone?.replace(/^\+91/, '')}</span>
               </div>
               <div className="detail-item">
                 <label>Status</label>
