@@ -1,108 +1,162 @@
+// src/pages/StaffDashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2"; // Ensure npm install sweetalert2 was successful
 import { searchPickup, approvePickup, markPicked } from "../services/api";
+import Header from "../components/Header";
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
-
-  const [regNo, setRegNo] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [result, setResult] = useState(null);
-  const [message, setMessage] = useState("");
-  const [tick, setTick] = useState(false);
+  const [facultyName, setFacultyName] = useState("");
 
   useEffect(() => {
     if (localStorage.getItem("staffLogged") !== "true") {
       navigate("/staff-login");
+    } else {
+      setFacultyName(localStorage.getItem("facultyName") || "Staff Member");
     }
-  }, []);
+  }, [navigate]);
 
   const handleSearch = async () => {
-    const res = await searchPickup(regNo);
+    if (!searchInput.trim()) return;
 
-    if (res.status === "found") {
-      setResult(res);
-      setMessage("");
-    } else {
-      setResult(null);
-      setMessage("No registration found.");
+    // Show Loading Animation until API responds
+    Swal.fire({
+      title: 'Searching...',
+      text: 'Please wait while we fetch pickup details.',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    try {
+      // Logic to determine if search is by Phone or RegNo
+      const res = await searchPickup(searchInput);
+
+      if (res.status === "found") {
+        setResult(res);
+        Swal.close(); // Close loading animation
+      } else {
+        setResult(null);
+        Swal.fire("Not Found", "❌ No registration found for this input.", "error");
+      }
+    } catch (error) {
+      Swal.fire("Error", "Could not connect to the server.", "error");
     }
   };
 
   const handleApprove = async () => {
-    const facultyName = localStorage.getItem("facultyName");
-
-    const res = await approvePickup(regNo, facultyName);
+    Swal.showLoading(); // Show loading while processing approval
+    const res = await approvePickup(result.regNo || searchInput, facultyName);
 
     if (res.status === "approved") {
-      setMessage("Pickup Approved ✅");
+      Swal.fire("Success", "Pickup Approved ✅", "success");
       handleSearch();
     }
   };
 
   const handleMarkPicked = async () => {
-    const res = await markPicked(regNo);
+    Swal.showLoading();
+    const res = await markPicked(result.regNo || searchInput);
 
     if (res.status === "picked") {
-      setTick(true);
-
-      setTimeout(() => {
-        setTick(false);
+      // Success animation exactly like previous repo
+      Swal.fire("Success", "Student Picked Up Successfully!", "success").then(() => {
         setResult(null);
-        setRegNo("");
-      }, 2000);
+        setSearchInput("");
+      });
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("staffLogged");
-    localStorage.removeItem("facultyName");
-    navigate("/staff-login");
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You will be logged out!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, logout",
+    }).then((swalRes) => {
+      if (swalRes.isConfirmed) {
+        localStorage.removeItem("staffLogged");
+        localStorage.removeItem("facultyName");
+        navigate("/staff-login");
+      }
+    });
   };
 
   return (
-    <div style={{ padding: 40 }}>
-      <h2>Staff Dashboard</h2>
-
-      <button onClick={handleLogout}>Logout</button>
-
-      <hr />
-
-      <input
-        placeholder="Enter Register Number"
-        value={regNo}
-        onChange={(e) => setRegNo(e.target.value)}
+    <div>
+      <Header 
+        title="Staff Dashboard" 
+        subtitle={`Staff: ${facultyName}`} 
+        onLogout={handleLogout} 
       />
 
-      <button onClick={handleSearch}>Search</button>
-
-      <p>{message}</p>
-
-      {tick && <div className="tick">✔</div>}
-
-
-      {result && (
-        <div style={{ marginTop: 20 }}>
-          <h3>Pickup Details</h3>
-
-          <p><strong>Pickup Name:</strong> {result.pickupName}</p>
-          <p><strong>Relation:</strong> {result.relation}</p>
-          <p><strong>Phone:</strong> {result.phone}</p>
-          <p><strong>Status:</strong> {result.statusPickup}</p>
-          <p><strong>Approved By:</strong> {result.approvedBy || "Not Approved"}</p>
-
-          <img src={result.pickupPhoto} width="150" alt="Pickup Person" />
-
-          <br /><br />
-
-          {result.statusPickup === "REGISTERED" && (
-            <button onClick={handleApprove}>Approve</button>
-          )}
-
-          {result.statusPickup === "APPROVED" && (
-            <button onClick={handleMarkPicked}>Mark Picked</button>
-          )}
+      <main>
+        <div className="section">
+          <h3 style={{ color: '#4a90e2' }}>🔍 Pickup Search</h3>
+          <p style={{fontSize: '0.85em', color: '#666', marginBottom: '8px'}}>Search by Register Number or Phone Number</p>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input
+              placeholder="Reg No / Phone Number"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              style={{ marginBottom: 0 }}
+            />
+            <button className="primary-btn" onClick={handleSearch}>
+              Search
+            </button>
+          </div>
         </div>
-      )}
+
+        {result && (
+          <div className="section">
+            <h3 style={{ color: '#4a90e2', textAlign: 'center' }}>Pickup Details</h3>
+            
+            <div style={{ display: 'flex', gap: '25px', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {/* Displaying Parent/Pickup Person Image */}
+              <img 
+                src={result.pickupPhoto} 
+                style={{ width: '180px', borderRadius: '12px', border: '4px solid #4a90e2', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
+                alt="Pickup Person" 
+              />
+              
+              <div style={{ flex: 1, minWidth: '250px' }}>
+                <p><strong>Name:</strong> {result.pickupName}</p>
+                <p><strong>Relation:</strong> {result.relation}</p>
+                <p><strong>Phone:</strong> {result.phone}</p>
+                <p><strong>Status:</strong> 
+                  <span style={{ 
+                    color: result.statusPickup === 'APPROVED' ? '#28a745' : '#007bff',
+                    marginLeft: '8px',
+                    fontWeight: 'bold'
+                  }}>
+                    {result.statusPickup}
+                  </span>
+                </p>
+                <p><strong>Approved By:</strong> {result.approvedBy || "—"}</p>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 25, display: 'flex', gap: 15 }}>
+              {result.statusPickup === "REGISTERED" && (
+                <button className="success-btn" onClick={handleApprove} style={{ flex: 1, padding: '12px' }}>
+                  ✅ Approve Pickup
+                </button>
+              )}
+
+              {result.statusPickup === "APPROVED" && (
+                <button className="primary-btn" onClick={handleMarkPicked} style={{ flex: 1, padding: '12px' }}>
+                  📦 Mark as Picked
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
