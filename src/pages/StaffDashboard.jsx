@@ -39,16 +39,30 @@ export default function StaffDashboard() {
       return;
     }
 
-    // First, request camera permission explicitly
+    // Check if getUserMedia is supported
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      Swal.fire({
+        icon: "error",
+        title: "Camera Not Supported",
+        text: "Your browser doesn't support camera access. Please use a modern browser.",
+        confirmButtonText: "OK"
+      });
+      return;
+    }
+
+    // Request camera permission explicitly
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment" } 
+      });
       // Stop the stream immediately, we just needed permission
       stream.getTracks().forEach(track => track.stop());
     } catch (permissionError) {
+      console.error("Camera permission error:", permissionError);
       Swal.fire({
         icon: "warning",
         title: "Camera Permission Required",
-        text: "Please allow camera access to scan QR codes.",
+        text: "Please allow camera access to scan QR codes. Make sure you're on HTTPS.",
         confirmButtonText: "OK"
       });
       return;
@@ -56,26 +70,30 @@ export default function StaffDashboard() {
 
     setIsScanning(true);
     
-    try {
-      const html5QrCode = new Html5Qrcode("reader");
-      scannerRef.current = html5QrCode;
+    // Wait for DOM to update
+    setTimeout(async () => {
+      try {
+        const html5QrCode = new Html5Qrcode("reader");
+        scannerRef.current = html5QrCode;
 
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          setSearchInput(decodedText);
-          handleSearch(decodedText);
-          html5QrCode.stop();
-          scannerRef.current = null;
-          setIsScanning(false);
-        },
-        () => {} // Ignore errors during scanning
-      );
-    } catch (err) {
-      Swal.fire("Camera Error", "Could not start camera. Please try again.", "error");
-      setIsScanning(false);
-    }
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            setSearchInput(decodedText);
+            handleSearch(decodedText);
+            html5QrCode.stop();
+            scannerRef.current = null;
+            setIsScanning(false);
+          },
+          () => {} // Ignore errors during scanning
+        );
+      } catch (err) {
+        console.error("Scanner start error:", err);
+        Swal.fire("Camera Error", "Could not start camera. Please try again.", "error");
+        setIsScanning(false);
+      }
+    }, 100);
   };
 
   const handleSearch = async (query = searchInput) => {
@@ -135,8 +153,8 @@ export default function StaffDashboard() {
 
   // QR Icon SVG (GPay-style)
   const QRIcon = () => (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm13 0h1v2h-2v-1h1v-1zm-2-2h2v1h-1v1h-1v-2zm2 4h2v2h-1v-1h-1v-1zm-2 2h1v2h-2v-2h1zm2 0h2v1h-2v-1zm1-4h1v1h-1v-1zm-11-8h2v2H8V5zm4 0h2v2h-2V5zm-4 4h2v2H8V9zm4 0h2v2h-2V9z"/>
+    <svg viewBox="0 0 24 24" fill="white" width="22" height="22">
+      <path d="M3 11h8V3H3v8zm2-6h4v4H5V5zm8-2v8h8V3h-8zm6 6h-4V5h4v4zM3 21h8v-8H3v8zm2-6h4v4H5v-4zm8-2h2v2h-2v-2zm2 2h2v2h-2v-2zm2 0h2v2h-2v-2zm0 2v2h-2v-2h2zm0 2h2v2h-2v-2zm-2 0h-2v2h2v-2zm-2-4h2v2h-2v-2zm4 0h2v2h-2v-2z"/>
     </svg>
   );
 
@@ -161,7 +179,7 @@ export default function StaffDashboard() {
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
-              <button className="qr-icon-btn" onClick={startScanner} title="Scan QR Code">
+              <button className="qr-icon-btn" onClick={startScanner} type="button" title="Scan QR Code">
                 <QRIcon />
               </button>
             </div>
