@@ -106,7 +106,7 @@ export default function StaffDashboard() {
 
     try {
       const res = await searchPickup(query);
-      if (res.status === "found") {
+      if (res.status === "found" && Array.isArray(res.data)) {
         setResults(res.data);
         Swal.close();
       } else {
@@ -114,6 +114,7 @@ export default function StaffDashboard() {
         Swal.fire("Not Found", "No registration found.", "error");
       }
     } catch (error) {
+      setResults([]);
       Swal.fire("Error", "Could not connect to the server.", "error");
     }
   };
@@ -251,7 +252,7 @@ export default function StaffDashboard() {
                   </div>
                   <div className="detail-item">
                     <label>Phone</label>
-                    <span>🇮🇳 +91 {student.phone?.replace(/^\+91/, '')}</span>
+                    <span>🇮🇳 +91 {String(student.phone || '').replace(/^\+91/, '')}</span>
                   </div>
                   <div className="detail-item">
                     <label>Status</label>
