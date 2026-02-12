@@ -42,21 +42,74 @@ export default function ParentDashboard() {
       const res = await searchPickup(regNo);
       if (res.status === "found") {
         setRegisteredData(res.data[0]);
-        Swal.close();
-      } else {
-        Swal.fire("Error", "Could not find registration details.", "error");
       }
+      Swal.close();
     } catch (err) {
-      Swal.fire("Error", "Server connection failed.", "error");
+      Swal.close();
     }
+  };
+
+  // Compress image if over 2MB
+  const compressImage = (file, maxSizeMB = 2, minSizeMB = 1) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          
+          // Scale down if needed
+          const maxDim = 1200;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = (height / width) * maxDim;
+              width = maxDim;
+            } else {
+              width = (width / height) * maxDim;
+              height = maxDim;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Start with high quality and reduce if needed
+          let quality = 0.9;
+          const tryCompress = () => {
+            canvas.toBlob((blob) => {
+              if (blob.size > maxSizeMB * 1024 * 1024 && quality > 0.3) {
+                quality -= 0.1;
+                tryCompress();
+              } else {
+                resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+              }
+            }, 'image/jpeg', quality);
+          };
+          tryCompress();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleImageUpload = async (file) => {
     if (!file) return;
 
+    let fileToUpload = file;
+
+    // Auto-compress if over 2MB
     if (file.size > 2 * 1024 * 1024) {
-      Swal.fire("Error", "Image must be less than 2MB", "error");
-      return;
+      Swal.fire({
+        title: "Compressing...",
+        text: "Optimizing image size",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      fileToUpload = await compressImage(file);
     }
 
     Swal.fire({
@@ -66,7 +119,7 @@ export default function ParentDashboard() {
     });
 
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", fileToUpload);
     formData.append("upload_preset", "nexus_event");
 
     try {
@@ -94,6 +147,10 @@ export default function ParentDashboard() {
       return Swal.fire("Incomplete", "Please fill all details and upload a photo.", "warning");
     }
 
+    if (phone.length !== 10) {
+      return Swal.fire("Invalid", "Please enter a valid 10-digit phone number.", "warning");
+    }
+
     Swal.fire({
       title: "Registering...",
       allowOutsideClick: false,
@@ -108,7 +165,7 @@ export default function ParentDashboard() {
         studentName: student.name,
         pickupName,
         relation,
-        phone,
+        phone: `+91${phone}`,
         pickupPhoto: photoUrl,
       });
 
@@ -257,21 +314,51 @@ export default function ParentDashboard() {
 
               <div>
                 <label className="input-label">Relation to Student</label>
-                <input 
-                  placeholder="e.g. Father, Mother, Uncle" 
+                <select 
                   value={relation} 
-                  onChange={(e) => setRelation(e.target.value)} 
-                />
+                  onChange={(e) => setRelation(e.target.value)}
+                  style={{ width: '100%', padding: '12px 15px', border: '1.5px solid #eef0f5', borderRadius: '10px', fontSize: '0.95rem', background: 'white' }}
+                >
+                  <option value="">Select Relation</option>
+                  <option value="Father">Father</option>
+                  <option value="Mother">Mother</option>
+                  <option value="Brother">Brother</option>
+                  <option value="Sister">Sister</option>
+                  <option value="Uncle">Uncle</option>
+                  <option value="Aunty">Aunty</option>
+                  <option value="Grandpa">Grandpa</option>
+                  <option value="Grandma">Grandma</option>
+                </select>
               </div>
 
               <div>
                 <label className="input-label">Contact Number</label>
-                <input 
-                  type="tel" 
-                  placeholder="10-digit mobile number" 
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value)} 
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px', 
+                    padding: '12px', 
+                    background: '#f0f0f0', 
+                    borderRadius: '10px',
+                    border: '1.5px solid #eef0f5',
+                    fontSize: '0.95rem'
+                  }}>
+                    <span>🇮🇳</span>
+                    <span>+91</span>
+                  </div>
+                  <input 
+                    type="tel" 
+                    placeholder="10-digit number" 
+                    value={phone} 
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setPhone(val);
+                    }}
+                    maxLength={10}
+                    style={{ flex: 1 }}
+                  />
+                </div>
               </div>
 
               <div>
@@ -290,9 +377,9 @@ export default function ParentDashboard() {
                     src={photoUrl} 
                     alt="Preview" 
                     style={{ 
-                      width: '100px', 
-                      height: '100px', 
-                      borderRadius: '50%', 
+                      width: '120px', 
+                      height: '120px', 
+                      borderRadius: '12px', 
                       border: '3px solid #00c853', 
                       objectFit: 'cover' 
                     }} 
