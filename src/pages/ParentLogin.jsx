@@ -14,10 +14,9 @@ export default function ParentLogin() {
       return Swal.fire("Required", "Please enter both Register No and DOB.", "warning");
     }
 
-    // Show Loading Animation
     Swal.fire({
       title: "Verifying...",
-      text: "Please wait while we check your child's record.",
+      text: "Checking your child's record.",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
@@ -34,7 +33,7 @@ export default function ParentLogin() {
           title: "Login Successful",
           timer: 1500,
           showConfirmButton: false
-        }).then(() => navigate("/parent-dashboard"));
+        }).then(() => navigate("/parent")); // Corrected Path to /parent
       } else {
         Swal.fire("Access Denied", "❌ Invalid Register No or DOB.", "error");
       }
@@ -46,11 +45,9 @@ export default function ParentLogin() {
   return (
     <div className="mobile-container">
       <Header title="Parent Login" subtitle="SRI VINAYAGA VIDYALAYA SCHOOL" />
-      
       <main>
         <div className="section">
           <h3 style={{ textAlign: "center", marginBottom: "20px" }}>🔐 Parent Portal</h3>
-          
           <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             <label style={{ fontSize: "0.85rem", color: "#666", fontWeight: "bold" }}>Register Number</label>
             <input
@@ -58,23 +55,17 @@ export default function ParentLogin() {
               value={regNo}
               onChange={(e) => setRegNo(e.target.value)}
             />
-
             <label style={{ fontSize: "0.85rem", color: "#666", fontWeight: "bold" }}>Date of Birth</label>
             <input
               placeholder="DD-MM-YYYY"
               value={dob}
               onChange={(e) => setDob(e.target.value)}
             />
-
             <button className="primary-btn" onClick={handleLogin} style={{ marginTop: "10px" }}>
               Login
             </button>
           </div>
         </div>
-
-        <p className="text-center" style={{ marginTop: "20px", color: "#888", fontSize: "0.8rem" }}>
-          Please use the credentials provided by the school.
-        </p>
       </main>
     </div>
   );
