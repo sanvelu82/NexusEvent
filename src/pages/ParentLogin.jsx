@@ -78,7 +78,7 @@ export default function ParentLogin() {
             <span className="field-icon">📅</span>
             <input
               type="text"
-              placeholder="DD-MM-YYYY"
+              placeholder="DD/MM/YYYY"
               value={dob}
               onChange={(e) => setDob(e.target.value)}
             />
