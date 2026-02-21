@@ -6,6 +6,7 @@ import Header from "../components/Header";
 
 export default function ParentDashboard() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState(null);
   const [pickupName, setPickupName] = useState("");
   const [relation, setRelation] = useState("");
@@ -16,42 +17,51 @@ export default function ParentDashboard() {
   const [registeredData, setRegisteredData] = useState(null);
 
   useEffect(() => {
-    const data = localStorage.getItem("studentData");
-    const regNo = localStorage.getItem("regNo");
+    const rawData = localStorage.getItem("studentData");
+    const storedRegNo = localStorage.getItem("regNo");
 
-    if (!data || !regNo) {
+    if (!rawData || !storedRegNo) {
       navigate("/");
       return;
     }
 
-    const parsed = JSON.parse(data);
-    setStudent(parsed);
+    try {
+      const parsed = JSON.parse(rawData);
+      setStudent(parsed);
 
-    if (parsed.registered === "YES") {
-      setDisabled(true);
-      fetchExistingRegistration(regNo);
+      // Fetch official record from Pickup_DB regardless of the 'registered' flag 
+      // to ensure we have the most accurate details for the UI.
+      fetchExistingRegistration(storedRegNo, parsed.registered);
+    } catch (error) {
+      console.error("Error parsing student data", error);
+      navigate("/");
     }
   }, [navigate]);
 
-  const fetchExistingRegistration = async (regNo) => {
-    Swal.fire({
-      title: "Loading...",
-      didOpen: () => Swal.showLoading(),
-    });
-
+  const fetchExistingRegistration = async (regNo, initialStatus) => {
+    setLoading(true);
     try {
       const res = await searchPickup(regNo);
-      if (res.status === "found") {
+      if (res.status === "found" && res.data && res.data.length > 0) {
         setRegisteredData(res.data[0]);
+        setDisabled(true); // Switch to Display Mode
+      } else {
+        // If the student login says "YES" but no record is in Pickup_DB,
+        // we default back to the registration form.
+        setDisabled(initialStatus === "YES");
+        if (initialStatus === "YES" && res.status !== "found") {
+            setDisabled(false); 
+        }
       }
-      Swal.close();
     } catch (err) {
-      Swal.close();
+      console.error(err);
+      setDisabled(false);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Compress image if over 2MB
-  const compressImage = (file, maxSizeMB = 2, minSizeMB = 1) => {
+  const compressImage = (file, maxSizeMB = 2) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -59,8 +69,6 @@ export default function ParentDashboard() {
         img.onload = () => {
           const canvas = document.createElement('canvas');
           let { width, height } = img;
-          
-          // Scale down if needed
           const maxDim = 1200;
           if (width > maxDim || height > maxDim) {
             if (width > height) {
@@ -71,13 +79,11 @@ export default function ParentDashboard() {
               height = maxDim;
             }
           }
-          
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Start with high quality and reduce if needed
           let quality = 0.9;
           const tryCompress = () => {
             canvas.toBlob((blob) => {
@@ -99,18 +105,13 @@ export default function ParentDashboard() {
 
   const handleImageUpload = async (file) => {
     if (!file) return;
-
-    // Create local preview URL
     const previewUrl = URL.createObjectURL(file);
     setPhotoPreview(previewUrl);
     setPhotoFile(file);
   };
 
-  // Upload to Cloudinary (called during submit)
   const uploadToCloud = async (file) => {
     let fileToUpload = file;
-
-    // Auto-compress if over 2MB
     if (file.size > 2 * 1024 * 1024) {
       Swal.fire({
         title: "Compressing...",
@@ -152,7 +153,6 @@ export default function ParentDashboard() {
     const regNo = localStorage.getItem("regNo");
 
     try {
-      // Upload photo to cloud first
       const photoUrl = await uploadToCloud(photoFile);
 
       Swal.fire({
@@ -174,7 +174,6 @@ export default function ParentDashboard() {
       });
 
       if (res.status === "success") {
-        // Show refined success animation
         Swal.fire({
           icon: "success",
           title: "Success!",
@@ -183,11 +182,9 @@ export default function ParentDashboard() {
           showConfirmButton: false,
           timerProgressBar: true,
         }).then(() => {
-          // Auto-redirect to home page after success
           localStorage.clear();
           navigate("/");
         });
-
       } else {
         Swal.fire("Error", "Failed to register. Please try again.", "error");
       }
@@ -201,6 +198,15 @@ export default function ParentDashboard() {
     navigate("/");
   };
 
+  if (loading) {
+    return (
+      <div className="dashboard-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column' }}>
+        <h2 style={{ color: '#00bcd4' }}>Verifying...</h2>
+        <p>Syncing with school database.</p>
+      </div>
+    );
+  }
+
   if (!student) return null;
 
   return (
@@ -212,7 +218,6 @@ export default function ParentDashboard() {
       />
 
       <main className="dashboard-main">
-        {/* Student Info Card */}
         <div className="result-card">
           <h3 style={{ color: '#00bcd4', marginBottom: '15px', fontSize: '1rem' }}>
             🧑‍🎓 Student Information
@@ -238,16 +243,19 @@ export default function ParentDashboard() {
             </div>
             <div className="detail-item">
               <label>Status</label>
-              <span className={`status-badge ${disabled ? 'status-approved' : 'status-registered'}`}>
-                {disabled ? 'Registered' : 'Pending'}
+              <span className={`status-badge ${
+                registeredData ? (
+                  registeredData.statusPickup === 'APPROVED' ? 'status-approved' : 
+                  registeredData.statusPickup === 'PICKED' ? 'status-picked' : 'status-registered'
+                ) : 'status-pending'
+              }`}>
+                {registeredData ? registeredData.statusPickup : 'PENDING'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Conditional: Show Details or Form */}
         {disabled && registeredData ? (
-          /* DISPLAY MODE: Show existing pickup details */
           <div className="result-card" style={{ borderLeft: '4px solid #00c853' }}>
             <h3 style={{ color: '#00c853', marginBottom: '15px', fontSize: '1rem' }}>
               ✅ Pickup Person Details
@@ -289,40 +297,21 @@ export default function ParentDashboard() {
                 <span>{registeredData.approvedBy || "Waiting for Faculty"}</span>
               </div>
             </div>
-            <div style={{ 
-              marginTop: '15px', 
-              padding: '12px', 
-              background: '#e8f5e9', 
-              borderRadius: '8px', 
-              fontSize: '0.8rem', 
-              textAlign: 'center',
-              color: '#2e7d32'
-            }}>
+            <div style={{ marginTop: '15px', padding: '12px', background: '#e8f5e9', borderRadius: '8px', fontSize: '0.8rem', textAlign: 'center', color: '#2e7d32' }}>
               Show this screen to gate staff during pickup on 28-02-2026
             </div>
           </div>
         ) : (
-          /* INPUT MODE: Registration Form */
           <div className="section">
             <h3 style={{ color: '#00bcd4' }}>👤 Register Pickup Person</h3>
-            
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <label className="input-label">Pickup Person Name</label>
-                <input 
-                  placeholder="Enter full name" 
-                  value={pickupName} 
-                  onChange={(e) => setPickupName(e.target.value)} 
-                />
+                <input placeholder="Enter full name" value={pickupName} onChange={(e) => setPickupName(e.target.value)} />
               </div>
-
               <div>
                 <label className="input-label">Relation to Student</label>
-                <select 
-                  value={relation} 
-                  onChange={(e) => setRelation(e.target.value)}
-                  style={{ width: '100%', padding: '12px 15px', border: '1.5px solid #eef0f5', borderRadius: '10px', fontSize: '0.95rem', background: 'white' }}
-                >
+                <select value={relation} onChange={(e) => setRelation(e.target.value)} style={{ width: '100%', padding: '12px 15px', border: '1.5px solid #eef0f5', borderRadius: '10px', fontSize: '0.95rem', background: 'white' }}>
                   <option value="">Select Relation</option>
                   <option value="Father">Father</option>
                   <option value="Mother">Mother</option>
@@ -334,69 +323,25 @@ export default function ParentDashboard() {
                   <option value="Grandma">Grandma</option>
                 </select>
               </div>
-
               <div>
                 <label className="input-label">Contact Number</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '6px', 
-                    padding: '12px', 
-                    background: '#f0f0f0', 
-                    borderRadius: '10px',
-                    border: '1.5px solid #eef0f5',
-                    fontSize: '0.95rem'
-                  }}>
-                    <span>🇮🇳</span>
-                    <span>+91</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '12px', background: '#f0f0f0', borderRadius: '10px', border: '1.5px solid #eef0f5', fontSize: '0.95rem' }}>
+                    <span>🇮🇳</span><span>+91</span>
                   </div>
-                  <input 
-                    type="tel" 
-                    placeholder="10-digit number" 
-                    value={phone} 
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                      setPhone(val);
-                    }}
-                    maxLength={10}
-                    style={{ flex: 1 }}
-                  />
+                  <input type="tel" placeholder="10-digit number" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} maxLength={10} style={{ flex: 1 }} />
                 </div>
               </div>
-
               <div>
                 <label className="input-label">Upload Profile Photo</label>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={(e) => handleImageUpload(e.target.files[0])} 
-                  style={{ padding: '10px', background: '#f8f9fa' }} 
-                />
+                <input type="file" accept="image/*" onChange={(e) => handleImageUpload(e.target.files[0])} style={{ padding: '10px', background: '#f8f9fa' }} />
               </div>
-
               {photoPreview && (
                 <div style={{ textAlign: 'center', padding: '15px' }}>
-                  <img 
-                    src={photoPreview} 
-                    alt="Preview" 
-                    style={{ 
-                      width: '120px', 
-                      height: '120px', 
-                      borderRadius: '12px', 
-                      border: '3px solid #00c853', 
-                      objectFit: 'cover' 
-                    }} 
-                  />
-                  <p style={{ color: '#666', fontSize: '0.8rem', marginTop: '8px' }}>
-                    Photo selected ✓
-                  </p>
+                  <img src={photoPreview} alt="Preview" style={{ width: '120px', height: '120px', borderRadius: '12px', border: '3px solid #00c853', objectFit: 'cover' }} />
                 </div>
               )}
-
-              <button className="success-btn" onClick={handleSubmit} style={{ width: '100%', padding: '14px' }}>
-                Confirm Registration
-              </button>
+              <button className="success-btn" onClick={handleSubmit} style={{ width: '100%', padding: '14px' }}>Confirm Registration</button>
             </div>
           </div>
         )}

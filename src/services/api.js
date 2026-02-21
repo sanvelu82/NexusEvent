@@ -1,4 +1,5 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbyUEi-QloY8vMAg_Nq0vm3Qh-wK4R4zJ7VyDzDpu9UwhJPpB6pZ_xzrhz7BEBT3iA8v7A/exec";
+import axios from "axios";
+const API_URL = "https://script.google.com/macros/s/AKfycbyIvSQkvFr6AKx3tdtzeZLvNfBuAxtVSe-hmp-25-QY0izZG5C_to4bWq7bj4p490yqNQ/exec";
 
 async function callAPI(payload) {
   try {
@@ -38,12 +39,27 @@ export async function staffLogin(username, password) {
   });
 }
 
-export async function searchPickup(regNo) {
-  return callAPI({
-    action: "searchPickup",
-    regNo,
-  });
-}
+export const searchPickup = async (regNo) => {
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      mode: "cors", // Use cors mode
+      headers: {
+        "Content-Type": "text/plain", // Use text/plain to avoid preflight
+      },
+      body: JSON.stringify({
+        action: "searchPickup",
+        regNo: regNo,
+      }),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+};
 
 export async function approvePickup(regNo, facultyName) {
   return callAPI({
